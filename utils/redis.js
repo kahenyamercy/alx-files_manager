@@ -1,62 +1,32 @@
-// utils/redis.js
-
-import redis from 'redis';
+import { createClient } from 'redis';
+import { promisify } from 'util';
 
 class RedisClient {
-    constructor() {
-        this.client = redis.createClient();
+  constructor() {
+    this.myClient = createClient();
+    this.myClient.on('error', (error) => console.log(error));
+  }
 
-        // Display errors in the console
-        this.client.on('error', (err) => {
-            console.error('Redis client error:', err);
-        });
-    }
+  isAlive() {
+    return this.myClient.connected;
+  }
 
-    isAlive() {
-        // Check if the connection to Redis is successful
-        return this.client.connected;
-    }
+  async get(key) {
+    const getAsync = promisify(this.myClient.GET).bind(this.myClient);
+    return getAsync(key);
+  }
 
-    async get(key) {
-        return new Promise((resolve, reject) => {
-            this.client.get(key, (err, reply) => {
-                if (err) {
-                    console.error('Error getting value from Redis:', err);
-                    resolve(null);
-                } else {
-                    resolve(reply);
-                }
-            });
-        });
-    }
+  async set(key, val, time) {
+    const setAsync = promisify(this.myClient.SET).bind(this.myClient);
+    return setAsync(key, val, 'EX', time);
+  }
 
-    async set(key, value, duration) {
-        return new Promise((resolve, reject) => {
-            this.client.setex(key, duration, value, (err, reply) => {
-                if (err) {
-                    console.error('Error setting value in Redis:', err);
-                    resolve(null);
-                } else {
-                    resolve(reply);
-                }
-            });
-        });
-    }
-
-    async del(key) {
-        return new Promise((resolve, reject) => {
-            this.client.del(key, (err, reply) => {
-                if (err) {
-                    console.error('Error deleting value from Redis:', err);
-                    resolve(null);
-                } else {
-                    resolve(reply);
-                }
-            });
-        });
-    }
+  async del(key) {
+    const delAsync = promisify(this.myClient.DEL).bind(this.myClient);
+    return delAsync(key);
+  }
 }
 
-// Create and export an instance of RedisClient
 const redisClient = new RedisClient();
+
 export default redisClient;
